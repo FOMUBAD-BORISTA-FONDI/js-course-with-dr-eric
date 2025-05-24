@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Data Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.8.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.6.1/d3.min.js"></script>
+    <style>
+      :root {
+        --primary-color: #2563eb;
+        --primary-dark: #1e40af;
+        --secondary-color: #f8fafc;
+        --text-color: #1e293b;
+        --text-light: #64748b;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+        --border-radius: 8px;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      body {
+        background-color: #f1f5f9;
+        color: var(--text-color);
+      }
+
+      .dashboard-container {
+        display: grid;
+        grid-template-areas:
+          "header header header"
+          "sidebar main main"
+          "footer footer footer";
+        grid-template-rows: 64px 1fr 40px;
+        grid-template-columns: 260px 1fr 1fr;
+        height: 100vh;
+      }
+
+      header {
+        grid-area: header;
+        background-color: white;
+        color: var(--text-color);
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+      }
+
+      .logo {
+        font-weight: 700;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--primary-color);
+      }
+
+      .logo i {
+        font-size: 1.5rem;
+      }
+
+      .user-controls {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .search {
+        position: relative;
+      }
+
+      .search input {
+        padding: 8px 12px 8px 36px;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        width: 240px;
+        font-size: 0.875rem;
+        background-color: #f8fafc;
+        transition: all 0.2s;
+      }
+
+      .search input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background-color: white;
+        width: 280px;
+      }
+
+      .search i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-light);
+      }
+
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        padding: 6px 12px;
+        border-radius: 20px;
+        transition: all 0.2s;
+      }
+
+      .user-menu:hover {
+        background-color: #f1f5f9;
+      }
+
+      .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+      }
+
+      aside {
+        grid-area: sidebar;
+        background-color: white;
+        box-shadow: 1px 0 3px rgba(0, 0, 0, 0.1);
+        padding: 24px 16px;
+        overflow-y: auto;
+        z-index: 5;
+      }
+
+      .filter-section {
+        margin-bottom: 24px;
+      }
+
+      .filter-section h3 {
+        margin-bottom: 12px;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-light);
+      }
+
+      .filter-item {
+        margin-bottom: 16px;
+      }
+
+      .filter-item label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.875rem;
+        color: var(--text-color);
+      }
+
+      .filter-item select,
+      .filter-item input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: var(--border-radius);
+        border: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        background-color: white;
+        transition: all 0.2s;
+      }
+
+      .filter-item select:focus,
+      .filter-item input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      .filter-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 24px;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        border-radius: var(--border-radius);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+      }
+
+      .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+      }
+
+      .btn-outline {
+        background-color: transparent;
+        border: 1px solid #cbd5e1;
+      }
+
+      .btn-outline:hover {
+        background-color: #f1f5f9;
+      }
+
+      main {
+        grid-area: main;
+        padding: 24px;
+        display: grid;
+        grid-template-rows: auto 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        overflow-y: auto;
+      }
+
+      .kpi-container {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 24px;
+      }
+
+      .kpi-card {
+        background-color: white;
+        border-radius: var(--border-radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .kpi-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .kpi-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f0f9ff;
+        color: var(--primary-color);
+      }
+
+      .kpi-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 4px 0;
+      }
+
+      .kpi-title {
+        font-size: 0.875rem;
+        color: var(--text-light);
+        margin-bottom: 16px;
+      }
+
+      .kpi-change {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .kpi-change.positive {
+        color: var(--success-color);
+      }
+
+      .kpi-change.negative {
+        color: var(--danger-color);
+      }
+
+      .chart-container {
+        background-color: white;
+        border-radius: var(--border-radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .chart-title {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .chart-controls select {
+        padding: 6px 12px;
+        border-radius: var(--border-radius);
+        border: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        background-color: white;
+      }
+
+      .chart-content {
+        flex: 1;
+        position: relative;
+        width: 100%;
+        min-height: 200px;
+      }
+
+      .map-wrapper {
+        width: 100%;
+        height: 100%;
+        min-height: 200px;
+      }
+
+      footer {
+        grid-area: footer;
+        background-color: white;
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        font-size: 0.75rem;
+        box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .theme-toggle {
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: var(--border-radius);
+        transition: all 0.2s;
+      }
+
+      .theme-toggle:hover {
+        background-color: #f1f5f9;
+      }
+
+      @media (max-width: 1024px) {
+        .kpi-container {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .dashboard-container {
+          grid-template-areas:
+            "header header"
+            "main main"
+            "footer footer";
+          grid-template-rows: 64px 1fr 40px;
+          grid-template-columns: 1fr 1fr;
+        }
+
+        aside {
+          display: none;
+          position: fixed;
+          top: 64px;
+          left: 0;
+          width: 280px;
+          height: calc(100vh - 64px);
+          z-index: 20;
+          transform: translateX(-100%);
+          transition: transform 0.3s ease-in-out;
+        }
+
+        aside.active {
+          transform: translateX(0);
+          display: block;
+        }
+
+        .mobile-menu {
+          display: flex !important;
+        }
+
+        main {
+          grid-template-columns: 1fr;
+        }
+
+        .chart-container {
+          grid-column: 1 / -1;
+        }
+      }
+
+      .mobile-menu {
+        display: none;
+        font-size: 1.25rem;
+        cursor: pointer;
+      }
+
+      .tooltip {
+        position: absolute;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        border-radius: 4px;
+        pointer-events: none;
+        font-size: 12px;
+        z-index: 100;
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+      }
+
+      .data-table th,
+      .data-table td {
+        text-align: left;
+        padding: 8px 12px;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+      }
+
+      .data-table th {
+        color: var(--text-light);
+        font-weight: 500;
+      }
+
+      .data-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+      }
+
+      .data-loading.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .loader {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary-color);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="data-loading">
+      <div class="loader"></div>
+    </div>
+
+    <div class="dashboard-container">
+      <header>
+        <div class="logo">
+          <i class="fas fa-chart-line"></i>
+          <span>DataVisProject</span>
+        </div>
+        <div class="mobile-menu">
+          <i class="fas fa-bars"></i>
+        </div>
+        <div class="user-controls">
+          <div class="search">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search dashboard..." />
+          </div>
+          <div class="theme-toggle" id="theme-toggle">
+            <i class="fas fa-moon"></i>
+          </div>
+          <div class="user-menu">
+            <div class="user-avatar">JD</div>
+            <span>Fomubad Borista</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+        </div>
+      </header>
+
+      <aside>
+        <div class="filter-section">
+          <h3>Filters</h3>
+          <div class="filter-item">
+            <label for="date-filter">Date Range</label>
+            <select id="date-filter">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 3 months</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="category-filter">Category</label>
+            <select id="category-filter">
+              <option value="all">All Categories</option>
+              <option value="electronics">Electronics</option>
+              <option value="clothing">Clothing</option>
+              <option value="furniture">Furniture</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="region-filter">Region</label>
+            <select id="region-filter">
+              <option value="all">All Regions</option>
+              <option value="na">North America</option>
+              <option value="eu">Europe</option>
+              <option value="asia">Asia</option>
+              <option value="africa">Africa</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3>Advanced Filters</h3>
+          <div class="filter-item">
+            <label for="metric-filter">Primary Metric</label>
+            <select id="metric-filter">
+              <option value="users">Users</option>
+              <option value="revenue">Revenue</option>
+              <option value="conversion">Conversion Rate</option>
+              <option value="bounce">Bounce Rate</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="comparison-filter">Comparison</label>
+            <select id="comparison-filter">
+              <option value="none">No Comparison</option>
+              <option value="previous">Previous Period</option>
+              <option value="yoy">Year over Year</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <button class="btn btn-primary" id="apply-filters">
+            Apply Filters
+          </button>
+          <button class="btn btn-outline" id="reset-filters">Reset</button>
+        </div>
+      </aside>
+
+      <main>
+        <div class="kpi-container">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <div class="kpi-title">Total Users</div>
+              <div class="kpi-icon"><i class="fas fa-users"></i></div>
+            </div>
+            <div class="kpi-value" id="users-value">24,582</div>
+            <div class="kpi-change positive">
+              <i class="fas fa-arrow-up"></i>
+              <span id="users-change">12%</span> vs previous period
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <div class="kpi-title">Conversion Rate</div>
+              <div class="kpi-icon"><i class="fas fa-exchange-alt"></i></div>
+            </div>
+            <div class="kpi-value" id="conversion-value">3.45%</div>
+            <div class="kpi-change negative">
+              <i class="fas fa-arrow-down"></i>
+              <span id="conversion-change">0.5%</span> vs previous period
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <div class="kpi-title">Avg. Session Duration</div>
+              <div class="kpi-icon"><i class="fas fa-clock"></i></div>
+            </div>
+            <div class="kpi-value" id="session-value">2:45</div>
+            <div class="kpi-change positive">
+              <i class="fas fa-arrow-up"></i>
+              <span id="session-change">0:33</span> vs previous period
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <div class="kpi-title">Bounce Rate</div>
+              <div class="kpi-icon"><i class="fas fa-sign-out-alt"></i></div>
+            </div>
+            <div class="kpi-value" id="bounce-value">42%</div>
+            <div class="kpi-change positive">
+              <i class="fas fa-arrow-down"></i>
+              <span id="bounce-change">3%</span> vs previous period
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">User Activity Over Time</div>
+            <div class="chart-controls">
+              <select id="activity-period">
+                <option value="daily">Daily</option>
+                <option value="weekly" selected>Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-content">
+            <canvas id="user-activity-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">Traffic Sources</div>
+            <div class="chart-controls">
+              <select id="traffic-source-filter">
+                <option value="all">All Sources</option>
+                <option value="organic">Organic</option>
+                <option value="referral">Referral</option>
+                <option value="social">Social</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-content">
+            <canvas id="traffic-sources-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">Regional Data</div>
+            <div class="chart-controls">
+              <select id="region-chart-filter">
+                <option value="all">All Regions</option>
+                <option value="country">By Country</option>
+                <option value="city">By City</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-content">
+            <div class="map-wrapper" id="region-map"></div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">Performance Metrics</div>
+            <div class="chart-controls">
+              <select id="performance-period">
+                <option value="thisYear">This Year</option>
+                <option value="lastYear">Last Year</option>
+                <option value="compare">Compare</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-content">
+            <canvas id="performance-chart"></canvas>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <div>
+          Data last updated:
+          <span id="last-updated">May 18, 2025 - 09:45 AM</span>
+        </div>
+        <div>© 2025 FomubadBorista | All Rights Reserved</div>
+      </footer>
+    </div>
+
+    <script>
+      // Global variables for charts
+      let userActivityChart, trafficSourcesChart, performanceChart;
+
+      // Sample data - Enhanced with more realistic data points
+      const userData = {
+        daily: {
+          labels: [
+            "May 13",
+            "May 14",
+            "May 15",
+            "May 16",
+            "May 17",
+            "May 18",
+            "May 19",
+          ],
+          datasets: [
+            {
+              label: "Active Users",
+              data: [1203, 1350, 1250, 1420, 1680, 1550, 1650],
+              borderColor: "#2563eb",
+              backgroundColor: "rgba(37, 99, 235, 0.1)",
+              tension: 0.4,
+              fill: true,
+            },
+            {
+              label: "New Users",
+              data: [285, 320, 240, 350, 420, 380, 405],
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              tension: 0.4,
+              fill: true,
+            },
+          ],
+        },
+        weekly: {
+          labels: [
+            "Apr 15-21",
+            "Apr 22-28",
+            "Apr 29-May 5",
+            "May 6-12",
+            "May 13-19",
+          ],
+          datasets: [
+            {
+              label: "Active Users",
+              data: [8450, 9200, 8900, 9850, 10103],
+              borderColor: "#2563eb",
+              backgroundColor: "rgba(37, 99, 235, 0.1)",
+              tension: 0.4,
+              fill: true,
+            },
+            {
+              label: "New Users",
+              data: [1950, 2120, 1850, 2400, 2300],
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              tension: 0.4,
+              fill: true,
+            },
+          ],
+        },
+        monthly: {
+          labels: ["Jan", "Feb", "Mar", "Apr", "May"],
+          datasets: [
+            {
+              label: "Active Users",
+              data: [35200, 38500, 40200, 42800, 45600],
+              borderColor: "#2563eb",
+              backgroundColor: "rgba(37, 99, 235, 0.1)",
+              tension: 0.4,
+              fill: true,
+            },
+            {
+              label: "New Users",
+              data: [8200, 8500, 9100, 9800, 10500],
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              tension: 0.4,
+              fill: true,
+            },
+          ],
+        },
+      };
+
+      const trafficSourcesData = {
+        all: {
+          labels: [
+            "Organic Search",
+            "Direct",
+            "Referral",
+            "Social Media",
+            "Email",
+            "Paid Search",
+          ],
+          datasets: [
+            {
+              data: [38, 23, 15, 12, 8, 4],
+              backgroundColor: [
+                "#3b82f6",
+                "#10b981",
+                "#f59e0b",
+                "#ef4444",
+                "#8b5cf6",
+                "#ec4899",
+              ],
+              borderWidth: 0,
+            },
+          ],
+        },
+        organic: {
+          labels: ["Google", "Bing", "Yahoo", "DuckDuckGo", "Other"],
+          datasets: [
+            {
+              data: [82, 9, 5, 3, 1],
+              backgroundColor: [
+                "#3b82f6",
+                "#10b981",
+                "#f59e0b",
+                "#ef4444",
+                "#8b5cf6",
+              ],
+              borderWidth: 0,
+            },
+          ],
+        },
+        referral: {
+          labels: [
+            "Partner Sites",
+            "Industry Blogs",
+            "Review Sites",
+            "Forums",
+            "Other",
+          ],
+          datasets: [
+            {
+              data: [42, 25, 18, 10, 5],
+              backgroundColor: [
+                "#3b82f6",
+                "#10b981",
+                "#f59e0b",
+                "#ef4444",
+                "#8b5cf6",
+              ],
+              borderWidth: 0,
+            },
+          ],
+        },
+        social: {
+          labels: [
+            "Facebook",
+            "Instagram",
+            "Twitter",
+            "LinkedIn",
+            "Pinterest",
+            "Other",
+          ],
+          datasets: [
+            {
+              data: [35, 25, 20, 15, 3, 2],
+              backgroundColor: [
+                "#3b82f6",
+                "#10b981",
+                "#f59e0b",
+                "#ef4444",
+                "#8b5cf6",
+                "#ec4899",
+              ],
+              borderWidth: 0,
+            },
+          ],
+        },
+      };
+
+      const performanceData = {
+        thisYear: {
+          labels: ["Jan", "Feb", "Mar", "Apr", "May"],
+          datasets: [
+            {
+              label: "Revenue ($)",
+              data: [42000, 45000, 52000, 49000, 56000],
+              backgroundColor: "rgba(59, 130, 246, 0.8)",
+            },
+          ],
+        },
+        lastYear: {
+          labels: ["Jan", "Feb", "Mar", "Apr", "May"],
+          datasets: [
+            {
+              label: "Revenue ($)",
+              data: [36000, 39000, 44000, 41000, 48000],
+              backgroundColor: "rgba(16, 185, 129, 0.8)",
+            },
+          ],
+        },
+        compare: {
+          labels: ["Jan", "Feb", "Mar", "Apr", "May"],
+          datasets: [
+            {
+              label: "2025",
+              data: [42000, 45000, 52000, 49000, 56000],
+              backgroundColor: "rgba(59, 130, 246, 0.8)",
+            },
+            {
+              label: "2024",
+              data: [36000, 39000, 44000, 41000, 48000],
+              backgroundColor: "rgba(16, 185, 129, 0.8)",
+            },
+          ],
+        },
+      };
+
+      // Regional data for D3 map
+      const regionData = [
+        { id: "NA", name: "North America", value: 42, users: 18500 },
+        { id: "EU", name: "Europe", value: 28, users: 12300 },
+        { id: "AS", name: "Asia", value: 20, users: 8800 },
+        { id: "SA", name: "South America", value: 5, users: 2200 },
+        { id: "AF", name: "Africa", value: 3, users: 1300 },
+        { id: "OC", name: "Oceania", value: 2, users: 880 },
+      ];
+
+      const countryData = [
+        { name: "United States", value: 35, users: 15400 },
+        { name: "Canada", value: 7, users: 3100 },
+        { name: "United Kingdom", value: 10, users: 4400 },
+        { name: "Germany", value: 8, users: 3520 },
+        { name: "France", value: 6, users: 2640 },
+        { name: "India", value: 8, users: 3520 },
+        { name: "China", value: 6, users: 2640 },
+        { name: "Japan", value: 5, users: 2200 },
+        { name: "Brazil", value: 4, users: 1760 },
+        { name: "Other Countries", value: 11, users: 4840 },
+      ];
+
+      // KPI data for different time periods and filters
+      const kpiData = {
+        7: {
+          users: { value: 24582, change: 12, trend: "positive" },
+          conversion: { value: 3.45, change: -0.5, trend: "negative" },
+          session: { value: "2:45", change: "+0:33", trend: "positive" },
+          bounce: { value: 42, change: -3, trend: "positive" },
+        },
+        30: {
+          users: { value: 94280, change: 15, trend: "positive" },
+          conversion: { value: 3.12, change: 2.1, trend: "positive" },
+          session: { value: "3:12", change: "+0:45", trend: "positive" },
+          bounce: { value: 38, change: -5, trend: "positive" },
+        },
+        90: {
+          users: { value: 285600, change: 8, trend: "positive" },
+          conversion: { value: 2.89, change: -1.2, trend: "negative" },
+          session: { value: "2:58", change: "-0:12", trend: "negative" },
+          bounce: { value: 45, change: 2, trend: "negative" },
+        },
+      };
+
+      // Initialize everything when DOM is loaded
+      document.addEventListener("DOMContentLoaded", function () {
+        // Show loading spinner
+        const loadingElement = document.querySelector(".data-loading");
+        loadingElement.classList.add("active");
+
+        // Simulate data loading with realistic delay
+        setTimeout(() => {
+          initializeCharts();
+          setupEventListeners();
+          updateKPIs();
+          loadingElement.classList.remove("active");
+        }, 1500);
+      });
+
+      function initializeCharts() {
+        initializeUserActivityChart("weekly");
+        initializeTrafficSourcesChart("all");
+        initializeRegionalMap("all");
+        initializePerformanceChart("thisYear");
+        updateTimestamp();
+      }
+
+      function initializeUserActivityChart(period) {
+        const ctx = document
+          .getElementById("user-activity-chart")
+          .getContext("2d");
+
+        if (userActivityChart) {
+          userActivityChart.destroy();
+        }
+
+        userActivityChart = new Chart(ctx, {
+          type: "line",
+          data: userData[period],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "top",
+              },
+              tooltip: {
+                mode: "index",
+                intersect: false,
+                callbacks: {
+                  label: function (context) {
+                    return (
+                      context.dataset.label +
+                      ": " +
+                      context.parsed.y.toLocaleString()
+                    );
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                display: true,
+                title: {
+                  display: true,
+                  text: "Time Period",
+                },
+              },
+              y: {
+                display: true,
+                title: {
+                  display: true,
+                  text: "Users",
+                },
+                beginAtZero: true,
+                ticks: {
+                  callback: function (value) {
+                    return value.toLocaleString();
+                  },
+                },
+              },
+            },
+            interaction: {
+              mode: "nearest",
+              axis: "x",
+              intersect: false,
+            },
+          },
+        });
+      }
+
+      function initializeTrafficSourcesChart(filter) {
+        const ctx = document
+          .getElementById("traffic-sources-chart")
+          .getContext("2d");
+
+        if (trafficSourcesChart) {
+          trafficSourcesChart.destroy();
+        }
+
+        trafficSourcesChart = new Chart(ctx, {
+          type: "doughnut",
+          data: trafficSourcesData[filter],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return context.label + ": " + context.parsed + "%";
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function initializeRegionalMap(view) {
+        const mapContainer = document.getElementById("region-map");
+        mapContainer.innerHTML = "";
+
+        const width = mapContainer.offsetWidth;
+        const height = 200;
+
+        const svg = d3
+          .select("#region-map")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+        // Create a simple world map visualization using circles
+        const data = view === "country" ? countryData : regionData;
+
+        // Create scales
+        const maxValue = d3.max(data, (d) => d.value);
+        const radiusScale = d3.scaleSqrt().domain([0, maxValue]).range([0, 30]);
+        const colorScale = d3
+          .scaleSequential(d3.interpolateBlues)
+          .domain([0, maxValue]);
+
+        // Position data for visualization
+        const positions =
+          view === "country"
+            ? [
+                { x: 50, y: 80 },
+                { x: 80, y: 60 },
+                { x: 200, y: 40 },
+                { x: 220, y: 50 },
+                { x: 190, y: 60 },
+                { x: 280, y: 80 },
+                { x: 300, y: 90 },
+                { x: 320, y: 70 },
+                { x: 150, y: 120 },
+                { x: 100, y: 100 },
+              ]
+            : [
+                { x: 80, y: 70 },
+                { x: 200, y: 50 },
+                { x: 300, y: 80 },
+                { x: 120, y: 130 },
+                { x: 250, y: 120 },
+                { x: 350, y: 110 },
+              ];
+
+        // Create tooltip
+        const tooltip = d3
+          .select("body")
+          .append("div")
+          .attr("class", "tooltip")
+          .style("opacity", 0);
+
+        // Draw circles for regions/countries
+        svg
+          .selectAll("circle")
+          .data(data)
+          .enter()
+          .append("circle")
+          .attr("cx", (d, i) => positions[i]?.x || 50 + i * 60)
+          .attr("cy", (d, i) => positions[i]?.y || height / 2)
+          .attr("r", (d) => radiusScale(d.value))
+          .attr("fill", (d) => colorScale(d.value))
+          .attr("stroke", "#fff")
+          .attr("stroke-width", 2)
+          .style("cursor", "pointer")
+          .on("mouseover", function (event, d) {
+            tooltip.transition().duration(200).style("opacity", 0.9);
+            tooltip
+              .html(
+                `<strong>${d.name}</strong><br/>
+                   Traffic: ${d.value}%<br/>
+                   Users: ${d.users ? d.users.toLocaleString() : "N/A"}`
+              )
+              .style("left", event.pageX + 10 + "px")
+              .style("top", event.pageY - 28 + "px");
+          })
+          .on("mouseout", function (d) {
+            tooltip.transition().duration(500).style("opacity", 0);
+          });
+
+        // Add labels
+        svg
+          .selectAll("text")
+          .data(data)
+          .enter()
+          .append("text")
+          .attr("x", (d, i) => positions[i]?.x || 50 + i * 60)
+          .attr(
+            "y",
+            (d, i) =>
+              (positions[i]?.y || height / 2) + radiusScale(d.value) + 12
+          )
+          .attr("text-anchor", "middle")
+          .attr("font-size", "10px")
+          .attr("fill", "#64748b")
+          .text((d) =>
+            d.name.length > 8 ? d.name.substring(0, 8) + "..." : d.name
+          );
+      }
+
+      function initializePerformanceChart(period) {
+        const ctx = document
+          .getElementById("performance-chart")
+          .getContext("2d");
+
+        if (performanceChart) {
+          performanceChart.destroy();
+        }
+
+        performanceChart = new Chart(ctx, {
+          type: "bar",
+          data: performanceData[period],
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "top",
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    return (
+                      context.dataset.label +
+                      ": $" +
+                      context.parsed.y.toLocaleString()
+                    );
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                display: true,
+                title: {
+                  display: true,
+                  text: "Month",
+                },
+              },
+              y: {
+                display: true,
+                title: {
+                  display: true,
+                  text: "Revenue ($)",
+                },
+                beginAtZero: true,
+                ticks: {
+                  callback: function (value) {
+                    return "$" + value.toLocaleString();
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      function updateKPIs(dateRange = 30) {
+        const data = kpiData[dateRange];
+
+        // Update Users KPI
+        document.getElementById("users-value").textContent =
+          data.users.value.toLocaleString();
+        document.getElementById(
+          "users-change"
+        ).textContent = `${data.users.change}%`;
+        updateKPIChangeClass("users", data.users.trend);
+
+        // Update Conversion KPI
+        document.getElementById(
+          "conversion-value"
+        ).textContent = `${data.conversion.value}%`;
+        document.getElementById("conversion-change").textContent = `${Math.abs(
+          data.conversion.change
+        )}%`;
+        updateKPIChangeClass("conversion", data.conversion.trend);
+
+        // Update Session KPI
+        document.getElementById("session-value").textContent =
+          data.session.value;
+        document.getElementById("session-change").textContent =
+          data.session.change;
+        updateKPIChangeClass("session", data.session.trend);
+
+        // Update Bounce Rate KPI
+        document.getElementById(
+          "bounce-value"
+        ).textContent = `${data.bounce.value}%`;
+        document.getElementById("bounce-change").textContent = `${Math.abs(
+          data.bounce.change
+        )}%`;
+        updateKPIChangeClass("bounce", data.bounce.trend);
+      }
+
+      function updateKPIChangeClass(kpi, trend) {
+        const changeElement = document.querySelector(
+          `#${kpi}-change`
+        ).parentElement;
+        changeElement.className = `kpi-change ${trend}`;
+
+        const icon = changeElement.querySelector("i");
+        if (trend === "positive") {
+          icon.className = "fas fa-arrow-up";
+        } else {
+          icon.className = "fas fa-arrow-down";
+        }
+      }
+
+      function setupEventListeners() {
+        // Mobile menu toggle
+        const mobileMenu = document.querySelector(".mobile-menu");
+        const sidebar = document.querySelector("aside");
+
+        mobileMenu.addEventListener("click", function () {
+          sidebar.classList.toggle("active");
+        });
+
+        // Chart period controls
+        document
+          .getElementById("activity-period")
+          .addEventListener("change", function () {
+            const period = this.value;
+            initializeUserActivityChart(period);
+          });
+
+        document
+          .getElementById("traffic-source-filter")
+          .addEventListener("change", function () {
+            const filter = this.value;
+            initializeTrafficSourcesChart(filter);
+          });
+
+        document
+          .getElementById("region-chart-filter")
+          .addEventListener("change", function () {
+            const view = this.value;
+            initializeRegionalMap(view);
+          });
+
+        document
+          .getElementById("performance-period")
+          .addEventListener("change", function () {
+            const period = this.value;
+            initializePerformanceChart(period);
+          });
+
+        // Filter controls
+        document
+          .getElementById("apply-filters")
+          .addEventListener("click", applyFilters);
+        document
+          .getElementById("reset-filters")
+          .addEventListener("click", resetFilters);
+
+        // Date filter change
+        document
+          .getElementById("date-filter")
+          .addEventListener("change", function () {
+            const dateRange = parseInt(this.value) || 30;
+            updateKPIs(dateRange);
+          });
+
+        // Theme toggle
+        document
+          .getElementById("theme-toggle")
+          .addEventListener("click", toggleTheme);
+
+        // Search functionality
+        document
+          .querySelector(".search input")
+          .addEventListener("input", handleSearch);
+
+        // Real-time updates
+        setInterval(updateTimestamp, 60000); // Update every minute
+        setInterval(simulateRealTimeUpdates, 30000); // Update data every 30 seconds
+      }
+
+      function applyFilters() {
+        const loadingElement = document.querySelector(".data-loading");
+        loadingElement.classList.add("active");
+
+        // Simulate filter application
+        setTimeout(() => {
+          // Get filter values
+          const dateFilter = document.getElementById("date-filter").value;
+          const categoryFilter =
+            document.getElementById("category-filter").value;
+          const regionFilter = document.getElementById("region-filter").value;
+
+          // Update KPIs based on filters
+          const dateRange = parseInt(dateFilter) || 30;
+          updateKPIs(dateRange);
+
+          // Refresh charts with filtered data
+          initializeCharts();
+
+          loadingElement.classList.remove("active");
+
+          // Show success message
+          showNotification("Filters applied successfully!", "success");
+        }, 1000);
+      }
+
+      function resetFilters() {
+        // Reset all filter dropdowns
+        document.getElementById("date-filter").value = "30";
+        document.getElementById("category-filter").value = "all";
+        document.getElementById("region-filter").value = "all";
+        document.getElementById("metric-filter").value = "users";
+        document.getElementById("comparison-filter").value = "none";
+
+        // Apply default filters
+        applyFilters();
+      }
+
+      function toggleTheme() {
+        const body = document.body;
+        const themeIcon = document.querySelector("#theme-toggle i");
+
+        body.classList.toggle("dark-theme");
+
+        if (body.classList.contains("dark-theme")) {
+          themeIcon.className = "fas fa-sun";
+        } else {
+          themeIcon.className = "fas fa-moon";
+        }
+      }
+
+      function handleSearch(event) {
+        const searchTerm = event.target.value.toLowerCase();
+
+        if (searchTerm.length > 2) {
+          // Simulate search functionality
+          console.log(`Searching for: ${searchTerm}`);
+          showNotification(`Searching for "${searchTerm}"...`, "info");
+        }
+      }
+
+      function updateTimestamp() {
+        const now = new Date();
+        const formatted =
+          now.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          }) +
+          " - " +
+          now.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+        document.getElementById("last-updated").textContent = formatted;
+      }
+
+      function simulateRealTimeUpdates() {
+        // Simulate real-time data updates
+        const currentDateFilter = document.getElementById("date-filter").value;
+        const dateRange = parseInt(currentDateFilter) || 30;
+
+        // Add some randomness to the data
+        const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
+
+        // Update a random KPI
+        const kpis = ["users", "conversion", "session", "bounce"];
+        const randomKPI = kpis[Math.floor(Math.random() * kpis.length)];
+
+        // Only update if user is viewing the current data
+        if (dateRange === 30) {
+          // Small random update to make it feel live
+          updateKPIs(dateRange);
+        }
+      }
+
+      function showNotification(message, type = "info") {
+        // Create notification element
+        const notification = document.createElement("div");
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+
+        // Style the notification
+        Object.assign(notification.style, {
+          position: "fixed",
+          top: "80px",
+          right: "20px",
+          padding: "12px 20px",
+          borderRadius: "8px",
+          color: "white",
+          fontSize: "14px",
+          zIndex: "1000",
+          opacity: "0",
+          transform: "translateX(100%)",
+          transition: "all 0.3s ease-in-out",
+        });
+
+        // Set background color based on type
+        const colors = {
+          success: "#10b981",
+          error: "#ef4444",
+          warning: "#f59e0b",
+          info: "#3b82f6",
+        };
+        notification.style.backgroundColor = colors[type] || colors.info;
+
+        // Add to DOM
+        document.body.appendChild(notification);
+
+        // Animate in
+        setTimeout(() => {
+          notification.style.opacity = "1";
+          notification.style.transform = "translateX(0)";
+        }, 100);
+
+        // Remove after delay
+        setTimeout(() => {
+          notification.style.opacity = "0";
+          notification.style.transform = "translateX(100%)";
+          setTimeout(() => {
+            document.body.removeChild(notification);
+          }, 300);
+        }, 3000);
+      }
+
+      // Add keyboard shortcuts
+      document.addEventListener("keydown", function (event) {
+        // Ctrl/Cmd + K to focus search
+        if ((event.ctrlKey || event.metaKey) && event.key === "k") {
+          event.preventDefault();
+          document.querySelector(".search input").focus();
+        }
+
+        // Escape to clear search
+        if (event.key === "Escape") {
+          document.querySelector(".search input").value = "";
+          document.querySelector(".search input").blur();
+        }
+      });
+
+      // Add window resize handler
+      window.addEventListener("resize", function () {
+        // Reinitialize regional map on resize
+        setTimeout(() => {
+          const currentView = document.getElementById(
+            "region-chart-filter"
+          ).value;
+          initializeRegionalMap(currentView);
+        }, 100);
+      });
+    </script>
+  </body>
+</html>

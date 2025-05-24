@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Advanced Data Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.8.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.6.1/d3.min.js"></script>
+    <style>
+      :root {
+        --primary-color: #2563eb;
+        --primary-dark: #1e40af;
+        --secondary-color: #f8fafc;
+        --text-color: #1e293b;
+        --text-light: #64748b;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+        --border-radius: 8px;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      body {
+        background-color: #f1f5f9;
+        color: var(--text-color);
+      }
+
+      .dashboard-container {
+        display: grid;
+        grid-template-areas:
+          "header header header"
+          "sidebar main main"
+          "footer footer footer";
+        grid-template-rows: 64px 1fr 40px;
+        grid-template-columns: 260px 1fr 1fr;
+        height: 100vh;
+      }
+
+      header {
+        grid-area: header;
+        background-color: white;
+        color: var(--text-color);
+        padding: 0 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+      }
+
+      .logo {
+        font-weight: 700;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--primary-color);
+      }
+
+      .logo i {
+        font-size: 1.5rem;
+      }
+
+      .user-controls {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .search {
+        position: relative;
+      }
+
+      .search input {
+        padding: 8px 12px 8px 36px;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        width: 240px;
+        font-size: 0.875rem;
+        background-color: #f8fafc;
+        transition: all 0.2s;
+      }
+
+      .search input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        background-color: white;
+        width: 280px;
+      }
+
+      .search i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-light);
+      }
+
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        padding: 6px 12px;
+        border-radius: 20px;
+        transition: all 0.2s;
+      }
+
+      .user-menu:hover {
+        background-color: #f1f5f9;
+      }
+
+      .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+      }
+
+      aside {
+        grid-area: sidebar;
+        background-color: white;
+        box-shadow: 1px 0 3px rgba(0, 0, 0, 0.1);
+        padding: 24px 16px;
+        overflow-y: auto;
+        z-index: 5;
+      }
+
+      .filter-section {
+        margin-bottom: 24px;
+      }
+
+      .filter-section h3 {
+        margin-bottom: 12px;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-light);
+      }
+
+      .filter-item {
+        margin-bottom: 16px;
+      }
+
+      .filter-item label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.875rem;
+        color: var(--text-color);
+      }
+
+      .filter-item select,
+      .filter-item input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: var(--border-radius);
+        border: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        background-color: white;
+        transition: all 0.2s;
+      }
+
+      .filter-item select:focus,
+      .filter-item input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      .filter-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 24px;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        border-radius: var(--border-radius);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+      }
+
+      .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+      }
+
+      .btn-outline {
+        background-color: transparent;
+        border: 1px solid #cbd5e1;
+      }
+
+      .btn-outline:hover {
+        background-color: #f1f5f9;
+      }
+
+      main {
+        grid-area: main;
+        padding: 24px;
+        display: grid;
+        grid-template-rows: auto 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        overflow-y: auto;
+      }
+
+      .kpi-container {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 24px;
+      }
+
+      .kpi-card {
+        background-color: white;
+        border-radius: var(--border-radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .kpi-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .kpi-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f0f9ff;
+        color: var(--primary-color);
+      }
+
+      .kpi-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 4px 0;
+      }
+
+      .kpi-title {
+        font-size: 0.875rem;
+        color: var(--text-light);
+        margin-bottom: 16px;
+      }
+
+      .kpi-change {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .kpi-change.positive {
+        color: var(--success-color);
+      }
+
+      .kpi-change.negative {
+        color: var(--danger-color);
+      }
+
+      .chart-container {
+        background-color: white;
+        border-radius: var(--border-radius);
+        padding: 20px;
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .chart-title {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .chart-controls select {
+        padding: 6px 12px;
+        border-radius: var(--border-radius);
+        border: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+        background-color: white;
+      }
+
+      .chart-content {
+        flex: 1;
+        position: relative;
+        width: 100%;
+        min-height: 200px;
+      }
+
+      .map-wrapper {
+        width: 100%;
+        height: 100%;
+        min-height: 200px;
+      }
+
+      footer {
+        grid-area: footer;
+        background-color: white;
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        font-size: 0.75rem;
+        box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .theme-toggle {
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: var(--border-radius);
+        transition: all 0.2s;
+      }
+
+      .theme-toggle:hover {
+        background-color: #f1f5f9;
+      }
+
+      @media (max-width: 1024px) {
+        .kpi-container {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .dashboard-container {
+          grid-template-areas:
+            "header header"
+            "main main"
+            "footer footer";
+          grid-template-rows: 64px 1fr 40px;
+          grid-template-columns: 1fr 1fr;
+        }
+
+        aside {
+          display: none;
+          position: fixed;
+          top: 64px;
+          left: 0;
+          width: 280px;
+          height: calc(100vh - 64px);
+          z-index: 20;
+          transform: translateX(-100%);
+          transition: transform 0.3s ease-in-out;
+        }
+
+        aside.active {
+          transform: translateX(0);
+          display: block;
+        }
+
+        .mobile-menu {
+          display: flex !important;
+        }
+
+        main {
+          grid-template-columns: 1fr;
+        }
+
+        .chart-container {
+          grid-column: 1 / -1;
+        }
+      }
+
+      .mobile-menu {
+        display: none;
+        font-size: 1.25rem;
+        cursor: pointer;
+      }
+
+      .tooltip {
+        position: absolute;
+        padding: 8px 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        border-radius: 4px;
+        pointer-events: none;
+        font-size: 12px;
+        z-index: 100;
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+      }
+
+      .data-table th,
+      .data-table td {
+        text-align: left;
+        padding: 8px 12px;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+      }
+
+      .data-table th {
+        color: var(--text-light);
+        font-weight: 500;
+      }
+
+      .data-loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+      }
+
+      .data-loading.active {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .loader {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--primary-color);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="data-loading">
+      <div class="loader"></div>
+    </div>
+
+    <div class="dashboard-container">
+      <header>
+        <div class="logo">
+          <i class="fas fa-chart-line"></i>
+          <span>DataVisProject</span>
+        </div>
+        <div class="mobile-menu">
+          <i class="fas fa-bars"></i>
+        </div>
+        <div class="user-controls">
+          <div class="search">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Search dashboard..." />
+          </div>
+          <div class="theme-toggle" id="theme-toggle">
+            <i class="fas fa-moon"></i>
+          </div>
+          <div class="user-menu">
+            <div class="user-avatar">JD</div>
+            <span>Fomubad Borista</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+        </div>
+      </header>
+
+      <aside>
+        <div class="filter-section">
+          <h3>Filters</h3>
+          <div class="filter-item">
+            <label for="date-filter">Date Range</label>
+            <select id="date-filter">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 3 months</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="category-filter">Category</label>
+            <select id="category-filter">
+              <option value="all">All Categories</option>
+              <option value="electronics">Electronics</option>
+              <option value="clothing">Clothing</option>
+              <option value="furniture">Furniture</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="region-filter">Region</label>
+            <select id="region-filter">
+              <option value="all">All Regions</option>
+              <option value="na">North America</option>
+              <option value="eu">Europe</option>
+              <option value="asia">Asia</option>
+              <option value="africa">Africa</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filter-section">
+          <h3>Advanced Filters</h3>
+          <div class="filter-item">
+            <label for="metric-filter">Primary Metric</label>
+            <select id="metric-filter">
+              <option value="users">Users</option>
+              <option value="revenue">Revenue</option>
+              <option value="conversion">Conversion Rate</option>
+              <option value="bounce">Bounce Rate</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label for="comparison-filter">Comparison</label>
+            <select id="comparison-filter">
+              <option value="none">No Comparison</option>
+              <option value="previous">Previous Period</option>
+              <option value="yoy">Year over Year</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <button class="btn btn-primary" id="apply-filters">
+            Apply Filters
+          </button>
+          <button class="btn btn-outline" id="reset-filters">Reset</button>
+        </div>
+      </aside>
+
+      <main>
+        <div class="kpi-container">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <div class="kpi-title">Total Users</div>
+              <div class="kpi-icon"><i class="fas fa-users"></i></div>
+            </div>
+            <div class="kpi-value" id="users-value">24,582</div>
+            <div class="kpi-change positive">
+              <i class="fas fa-arrow-up"></i>
+              <span id="users-change">12%</span> vs previous period
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <div class="kpi-title">Conversion Rate</div>
+              <div class="kpi-icon"><i class="fas fa-exchange-alt"></i></div>
+            </div>
+            <div class="kpi-value" id="conversion-value">3.45%</div>
+            <div class="kpi-change negative">
+              <i class="fas fa-arrow-down"></i>
+              <span id="conversion-change">0.5%</span> vs previous period
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <div class="kpi-title">Avg. Session Duration</div>
+              <div class="kpi-icon"><i class="fas fa-clock"></i></div>
+            </div>
+            <div class="kpi-value" id="session-value">2:45</div>
+            <div class="kpi-change positive">
+              <i class="fas fa-arrow-up"></i>
+              <span id="session-change">0:33</span> vs previous period
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <div class="kpi-title">Bounce Rate</div>
+              <div class="kpi-icon"><i class="fas fa-sign-out-alt"></i></div>
+            </div>
+            <div class="kpi-value" id="bounce-value">42%</div>
+            <div class="kpi-change positive">
+              <i class="fas fa-arrow-down"></i>
+              <span id="bounce-change">3%</span> vs previous period
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">User Activity Over Time</div>
+            <div class="chart-controls">
+              <select id="activity-period">
+                <option value="daily">Daily</option>
+                <option value="weekly" selected>Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-content">
+            <canvas id="user-activity-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">Traffic Sources</div>
+            <div class="chart-controls">
+              <select id="traffic-source-filter">
+                <option value="all">All Sources</option>
+                <option value="organic">Organic</option>
+                <option value="referral">Referral</option>
+                <option value="social">Social</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-content">
+            <canvas id="traffic-sources-chart"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">Regional Data</div>
+            <div class="chart-controls">
+              <select id="region-chart-filter">
+                <option value="all">All Regions</option>
+                <option value="country">By Country</option>
+                <option value="city">By City</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-content">
+            <div class="map-wrapper" id="region-map"></div>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-header">
+            <div class="chart-title">Performance Metrics</div>
+            <div class="chart-controls">
+              <select id="performance-period">
+                <option value="thisYear">This Year</option>
+                <option value="lastYear">Last Year</option>
+                <option value="compare">Compare</option>
+              </select>
+            </div>
+          </div>
+          <div class="chart-content">
+            <canvas id="performance-chart"></canvas>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        <div>
+          Data last updated:
+          <span id="last-updated">May 18, 2025 - 09:45 AM</span>
+        </div>
+        <div>© 2025 FomubadBorista | All Rights Reserved</div>
+      </footer>
+    </div>
+
+    <script></script>
+  </body>
+</html>
